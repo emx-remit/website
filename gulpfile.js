@@ -2,6 +2,7 @@
 const gulp = require('gulp');
 const del = require('del');
 const runSequence = require('run-sequence');
+
 const $ = {
   sass: require('gulp-sass'),
   useref: require('gulp-useref'),
@@ -26,32 +27,30 @@ gulp.task('clean', (cb) => {
 });
 
 // Styles
-gulp.task('styles', () => {
-  return gulp.src('./src/styles/**/*.scss')
-    .pipe($.sass().on('error', $.sass.logError))
-    .pipe(gulp.dest('./dist/css'));
-});
+gulp.task('styles', () => gulp.src('./src/styles/**/*.scss')
+  .pipe($.sass().on('error', $.sass.logError))
+  .pipe(gulp.dest('./dist/css')));
 
 // Images (For big images that get turned into base64)
 gulp.task('images', (cb) => {
   let file = 'let images = {\n';
-  let addImage = (name, extension) => {
+  const addImage = (name, extension) => {
     // Known to support jpg, png, gif. Supports others if mime type matches extension
     let mimeType = extension;
     if (extension === 'jpg') {
       mimeType = 'jpeg';
     }
 
-    let image = fs.readFileSync(`./images/${name}.${extension}`);
-    let b64 = new Buffer(image).toString('base64');
-    file += `  '${name}': 'data:image/${mimeType};base64, ${b64}',\n`
+    const image = fs.readFileSync(`./images/${name}.${extension}`);
+    const b64 = Buffer.from(image).toString('base64');
+    file += `  '${name}': 'data:image/${mimeType};base64, ${b64}',\n`;
   };
 
 
-  addImage('ledger-app','png');
-  addImage('ledger-nano-picture','jpg');
-  addImage('ledger-nano-s-buttons','png');
-  addImage('ledger-logo','png');
+  addImage('ledger-app', 'png');
+  addImage('ledger-nano-picture', 'jpg');
+  addImage('ledger-nano-s-buttons', 'png');
+  addImage('ledger-logo', 'png');
 
 
   file += '};\nmodule.exports = images;';
@@ -64,16 +63,16 @@ gulp.task('customConfig', (cb) => {
   let configFile = '\n// This file generated during the gulp build process.\n';
   configFile += 'window.stCustomConfig = ';
 
-  let configObj = {};
+  const configObj = {};
   if (process.env.STELLARTERM_CUSTOM_HORIZON_URL) {
     configObj.horizonUrl = process.env.STELLARTERM_CUSTOM_HORIZON_URL;
 
     if (configObj.horizonUrl.indexOf('http') !== 0) {
-      throw new Error('STELLARTERM_CUSTOM_HORIZON_URL environment variable must begin with http. Got: ' + process.env.STELLARTERM_CUSTOM_HORIZON_URL);
+      throw new Error(`STELLARTERM_CUSTOM_HORIZON_URL environment variable must begin with http. Got: ${process.env.STELLARTERM_CUSTOM_HORIZON_URL}`);
     }
 
     if (configObj.horizonUrl.substr(-1) === '/') {
-      throw new Error('STELLARTERM_CUSTOM_HORIZON_URL must not have a trailing slash. Got: ' + process.env.STELLARTERM_CUSTOM_HORIZON_URL);
+      throw new Error(`STELLARTERM_CUSTOM_HORIZON_URL must not have a trailing slash. Got: ${process.env.STELLARTERM_CUSTOM_HORIZON_URL}`);
     }
   }
 
@@ -99,7 +98,7 @@ gulp.task('buildInfo', (cb) => {
   let buildInfo = '\n// This file generated during the gulp build process.\n';
   buildInfo += 'window.stBuildInfo = ';
 
-  let infoObj = {};
+  const infoObj = {};
 
   infoObj.version = parseInt(execSync('git rev-list --count HEAD').toString().trim());
 
@@ -121,19 +120,19 @@ const bundler = watchify(browserify({
   packageCache: {},
   fullPaths: false,
   insertGlobalVars: {
-    horizonUrl: function () { return ''; }
-  }
+    horizonUrl() { return ''; },
+  },
 }));
 const rebundle = () => bundler.bundle()
-    // log errors if they happen
-    .on('error', (e) => {
-      console.log(e.stack)
-    })
-    .pipe(source('app.js'))
-    .pipe(gulp.dest('./dist/scripts'))
-    .on('end', () => {
-      reload();
-    });
+// log errors if they happen
+  .on('error', (e) => {
+    console.log(e.stack);
+  })
+  .pipe(source('app.js'))
+  .pipe(gulp.dest('./dist/scripts'))
+  .on('end', () => {
+    reload();
+  });
 bundler.on('update', rebundle);
 bundler.on('log', (e) => {
   console.log(e);
@@ -141,13 +140,13 @@ bundler.on('log', (e) => {
 gulp.task('scripts', rebundle);
 
 gulp.task('html', () => gulp.src('./src/index.html')
-    .pipe(gulp.dest('dist')));
+  .pipe(gulp.dest('dist')));
 
 gulp.task('buildBundle', ['styles', 'buildScripts', 'moveLibraries'], () => gulp.src('./app/*.html')
-    .pipe(gulp.useref.assets())
-    .pipe(gulp.useref.restore())
-    .pipe(gulp.useref())
-    .pipe(gulp.dest('dist')));
+  .pipe(gulp.useref.assets())
+  .pipe(gulp.useref.restore())
+  .pipe(gulp.useref())
+  .pipe(gulp.dest('dist')));
 
 const baseTasks = ['html', 'styles', 'customConfig', 'buildInfo', 'images', 'scripts', 'copyBower'];
 
@@ -157,7 +156,7 @@ gulp.task('watch', baseTasks, () => {
     notify: false,
     logPrefix: 'BS',
     server: ['dist'],
-    https: true
+    https: true,
   });
   gulp.watch('./src/index.html', ['html-reload']);
   gulp.watch(['src/**/*.scss'], ['css-reload']);
@@ -171,16 +170,16 @@ gulp.task('html-reload', ['html'], bsReload);
 gulp.task('css-reload', ['styles'], bsReload);
 
 gulp.task('copyBower', () => gulp.src('bower_components/**/*')
-    .pipe(gulp.dest('dist/bower_components/')));
+  .pipe(gulp.dest('dist/bower_components/')));
 
 // Build production site.
 gulp.task('uglify-js', () => gulp.src('dist/scripts/app.js')
-    .pipe($.uglify())
-    .pipe(gulp.dest('dist/scripts')));
+  .pipe($.uglify())
+  .pipe(gulp.dest('dist/scripts')));
 
 gulp.task('inlinesource', () => gulp.src('./dist/index.html')
-    .pipe($.inlineSource())
-    .pipe(gulp.dest('./dist/')));
+  .pipe($.inlineSource())
+  .pipe(gulp.dest('./dist/')));
 
 gulp.task('production', () => {
   process.env.NODE_ENV = 'production';
@@ -188,8 +187,9 @@ gulp.task('production', () => {
     'clean',
     baseTasks,
     'uglify-js',
-    'inlinesource'
-    , () => {
+    'inlinesource',
+    () => {
       process.exit();
-    });
+    },
+  );
 });
